@@ -21,22 +21,22 @@ var (
 //------------------------------------------------------------------------------
 
 type Response struct {
-	err      error
-	result   []byte
+	Err      error
+	Val      []byte
 	Request  *http.Request
 	Response *http.Response
 	Duration time.Duration
 }
 
 func (r *Response) Bind(obj interface{}) error {
-	if r.err != nil {
-		return r.err
+	if r.Err != nil {
+		return r.Err
 	}
-	return json.Unmarshal(r.result, obj)
+	return json.Unmarshal(r.Val, obj)
 }
 
 func (r *Response) Result() ([]byte, error) {
-	return r.result, r.err
+	return r.Val, r.Err
 }
 
 //------------------------------------------------------------------------------
@@ -60,8 +60,8 @@ type Client struct {
 	client *http.Client
 }
 
-func (c *Client) Request(method, url string, body io.Reader, options *Options) *Response {
-	resp := new(Response)
+func (c *Client) Request(method, url string, body io.Reader, options *Options) (resp *Response) {
+	resp = new(Response)
 	defer func() {
 		// dispatch listeners
 		for _, listener := range _listeners {
@@ -70,8 +70,8 @@ func (c *Client) Request(method, url string, body io.Reader, options *Options) *
 	}()
 	req, err := http.NewRequest(method, url, body)
 	if err != nil {
-		resp.err = err
-		return resp
+		resp.Err = err
+		return
 	}
 	if options != nil {
 		for k, v := range options.Header {
@@ -83,18 +83,18 @@ func (c *Client) Request(method, url string, body io.Reader, options *Options) *
 	res, err := c.client.Do(req)
 	resp.Duration = time.Now().Sub(beginTime)
 	if err != nil {
-		resp.err = err
-		return resp
+		resp.Err = err
+		return
 	}
 	defer res.Body.Close()
 	resp.Response = res
-	result, err := ioutil.ReadAll(res.Body)
+	val, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		resp.err = err
-		return resp
+		resp.Err = err
+		return
 	}
-	resp.result = result
-	return resp
+	resp.Val = val
+	return
 }
 
 func (c *Client) Get(url string) *Response {

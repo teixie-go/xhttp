@@ -28,11 +28,11 @@ type Response struct {
 	Duration time.Duration
 }
 
-func (r *Response) Bind(o interface{}) error {
+func (r *Response) Bind(obj interface{}) error {
 	if r.err != nil {
 		return r.err
 	}
-	return json.Unmarshal(r.result, o)
+	return json.Unmarshal(r.result, obj)
 }
 
 func (r *Response) Result() ([]byte, error) {

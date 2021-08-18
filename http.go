@@ -10,8 +10,7 @@ import (
 )
 
 var (
-	// DefaultClient is the default Client
-	// and is used by Get, Post, PostForm, and PostJSON.
+	// The default Client and is used by Get, Post, PostForm, and PostJSON.
 	DefaultClient = &client{client: http.DefaultClient}
 
 	// 监听器方法，可用于日志处理、上报监控平台等操作

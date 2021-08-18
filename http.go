@@ -6,7 +6,6 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"strings"
 	"time"
 )
 
@@ -70,11 +69,11 @@ type Client interface {
 
 	Get(url string) *Response
 
-	Post(url, data string) *Response
+	Post(url string, data io.Reader) *Response
 
-	PostForm(url, data string) *Response
+	PostForm(url string, data io.Reader) *Response
 
-	PostJSON(url, data string) *Response
+	PostJSON(url string, data io.Reader) *Response
 }
 
 type client struct {
@@ -122,18 +121,18 @@ func (c *client) Get(url string) *Response {
 	return c.Request("GET", url, nil, nil)
 }
 
-func (c *client) Post(url, data string) *Response {
-	return c.Request("POST", url, strings.NewReader(data), nil)
+func (c *client) Post(url string, data io.Reader) *Response {
+	return c.Request("POST", url, data, nil)
 }
 
-func (c *client) PostForm(url string, data string) *Response {
-	return c.Request("POST", url, strings.NewReader(data), &Options{
+func (c *client) PostForm(url string, data io.Reader) *Response {
+	return c.Request("POST", url, data, &Options{
 		Header: Header{"Content-Type": "application/x-www-form-urlencoded"},
 	})
 }
 
-func (c *client) PostJSON(url string, data string) *Response {
-	return c.Request("POST", url, strings.NewReader(data), &Options{
+func (c *client) PostJSON(url string, data io.Reader) *Response {
+	return c.Request("POST", url, data, &Options{
 		Header: Header{"Content-Type": "application/json;charset=utf-8"},
 	})
 }
@@ -152,14 +151,14 @@ func Get(url string) *Response {
 	return DefaultClient.Get(url)
 }
 
-func Post(url, data string) *Response {
+func Post(url string, data io.Reader) *Response {
 	return DefaultClient.Post(url, data)
 }
 
-func PostForm(url, data string) *Response {
+func PostForm(url string, data io.Reader) *Response {
 	return DefaultClient.PostForm(url, data)
 }
 
-func PostJSON(url, data string) *Response {
+func PostJSON(url string, data io.Reader) *Response {
 	return DefaultClient.PostJSON(url, data)
 }

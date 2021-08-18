@@ -21,14 +21,11 @@ var (
 //------------------------------------------------------------------------------
 
 type Response struct {
-	Err         error
-	Val         []byte
-	Method      string
-	Url         string
-	RequestBody string
-	Request     *http.Request
-	Response    *http.Response
-	Duration    time.Duration
+	Err      error
+	Val      []byte
+	Request  *http.Request
+	Response *http.Response
+	Duration time.Duration
 }
 
 func (r *Response) Bind(obj interface{}) error {
@@ -51,7 +48,7 @@ func (r *Response) Result() ([]byte, error) {
 
 //------------------------------------------------------------------------------
 
-type ListenerFunc func(resp *Response)
+type ListenerFunc func(method, url, body string, resp *Response)
 
 // Add global listeners
 func Listen(listeners ...ListenerFunc) {
@@ -71,11 +68,11 @@ type Client struct {
 }
 
 func (c *Client) Request(method, url, body string, options *Options) (resp *Response) {
-	resp = &Response{Method: method, Url: url, RequestBody: body}
+	resp = &Response{}
 	defer func() {
 		// dispatch listeners
 		for _, listener := range _listeners {
-			listener(resp)
+			listener(method, url, body, resp)
 		}
 	}()
 	req, err := http.NewRequest(method, url, strings.NewReader(body))

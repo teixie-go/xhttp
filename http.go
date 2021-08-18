@@ -2,7 +2,7 @@ package xhttp
 
 import (
 	"encoding/json"
-	"io"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -21,22 +21,25 @@ var (
 //------------------------------------------------------------------------------
 
 type Response struct {
-	Err      error
-	Val      []byte
-	Request  *http.Request
-	Response *http.Response
-	Duration time.Duration
+	val         []byte
+	Err         error
+	Method      string
+	Url         string
+	RequestBody string
+	Request     *http.Request
+	Response    *http.Response
+	Duration    time.Duration
 }
 
 func (r *Response) Bind(obj interface{}) error {
 	if r.Err != nil {
 		return r.Err
 	}
-	return json.Unmarshal(r.Val, obj)
+	return json.Unmarshal(r.val, obj)
 }
 
 func (r *Response) Result() ([]byte, error) {
-	return r.Val, r.Err
+	return r.val, r.Err
 }
 
 //------------------------------------------------------------------------------
@@ -60,15 +63,15 @@ type Client struct {
 	client *http.Client
 }
 
-func (c *Client) Request(method, url string, body io.Reader, options *Options) (resp *Response) {
-	resp = new(Response)
+func (c *Client) Request(method, url, body string, options *Options) (resp *Response) {
+	resp = &Response{Method: method, Url: url, RequestBody: body}
 	defer func() {
 		// dispatch listeners
 		for _, listener := range _listeners {
 			listener(resp)
 		}
 	}()
-	req, err := http.NewRequest(method, url, body)
+	req, err := http.NewRequest(method, url, strings.NewReader(body))
 	if err != nil {
 		resp.Err = err
 		return
@@ -80,46 +83,50 @@ func (c *Client) Request(method, url string, body io.Reader, options *Options) (
 	}
 	resp.Request = req
 	beginTime := time.Now()
-	res, err := c.client.Do(req)
+	retres, err := c.client.Do(req)
 	resp.Duration = time.Now().Sub(beginTime)
 	if err != nil {
 		resp.Err = err
 		return
 	}
-	defer res.Body.Close()
-	resp.Response = res
-	val, err := ioutil.ReadAll(res.Body)
+	defer retres.Body.Close()
+	resp.Response = retres
+	if retres.StatusCode != http.StatusOK {
+		resp.Err = fmt.Errorf("http StatusCode(%d)", retres.StatusCode)
+		return
+	}
+	val, err := ioutil.ReadAll(retres.Body)
 	if err != nil {
 		resp.Err = err
 		return
 	}
-	resp.Val = val
+	resp.val = val
 	return
 }
 
 func (c *Client) Get(url string) *Response {
-	return c.Request("GET", url, nil, nil)
+	return c.Request("GET", url, "", nil)
 }
 
 func (c *Client) Post(url, data string) *Response {
-	return c.Request("POST", url, strings.NewReader(data), nil)
+	return c.Request("POST", url, data, nil)
 }
 
 func (c *Client) PostForm(url string, data string) *Response {
-	return c.Request("POST", url, strings.NewReader(data), &Options{
+	return c.Request("POST", url, data, &Options{
 		Header: Header{"Content-Type": "application/x-www-form-urlencoded"},
 	})
 }
 
 func (c *Client) PostJSON(url string, data string) *Response {
-	return c.Request("POST", url, strings.NewReader(data), &Options{
+	return c.Request("POST", url, data, &Options{
 		Header: Header{"Content-Type": "application/json;charset=utf-8"},
 	})
 }
 
 //------------------------------------------------------------------------------
 
-func Request(method, url string, body io.Reader, options *Options) *Response {
+func Request(method, url, body string, options *Options) *Response {
 	return DefaultClient.Request(method, url, body, options)
 }
 

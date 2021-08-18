@@ -3,6 +3,7 @@ package xhttp
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -49,7 +50,7 @@ func (r *Response) Result() ([]byte, error) {
 
 //------------------------------------------------------------------------------
 
-type ListenerFunc func(method, url, body string, resp *Response)
+type ListenerFunc func(method, url string, body io.Reader, resp *Response)
 
 // Add global listeners
 func Listen(listeners ...ListenerFunc) {
@@ -65,7 +66,7 @@ type Options struct {
 }
 
 type Client interface {
-	Request(method, url, body string, options *Options) *Response
+	Request(method, url string, body io.Reader, options *Options) *Response
 
 	Get(url string) *Response
 
@@ -80,7 +81,7 @@ type client struct {
 	client *http.Client
 }
 
-func (c *client) Request(method, url, body string, options *Options) (resp *Response) {
+func (c *client) Request(method, url string, body io.Reader, options *Options) (resp *Response) {
 	resp = &Response{}
 	defer func() {
 		// dispatch listeners
@@ -88,7 +89,7 @@ func (c *client) Request(method, url, body string, options *Options) (resp *Resp
 			listener(method, url, body, resp)
 		}
 	}()
-	req, err := http.NewRequest(method, url, strings.NewReader(body))
+	req, err := http.NewRequest(method, url, body)
 	if err != nil {
 		resp.Err = err
 		return
@@ -118,21 +119,21 @@ func (c *client) Request(method, url, body string, options *Options) (resp *Resp
 }
 
 func (c *client) Get(url string) *Response {
-	return c.Request("GET", url, "", nil)
+	return c.Request("GET", url, nil, nil)
 }
 
 func (c *client) Post(url, data string) *Response {
-	return c.Request("POST", url, data, nil)
+	return c.Request("POST", url, strings.NewReader(data), nil)
 }
 
 func (c *client) PostForm(url string, data string) *Response {
-	return c.Request("POST", url, data, &Options{
+	return c.Request("POST", url, strings.NewReader(data), &Options{
 		Header: Header{"Content-Type": "application/x-www-form-urlencoded"},
 	})
 }
 
 func (c *client) PostJSON(url string, data string) *Response {
-	return c.Request("POST", url, data, &Options{
+	return c.Request("POST", url, strings.NewReader(data), &Options{
 		Header: Header{"Content-Type": "application/json;charset=utf-8"},
 	})
 }
@@ -143,7 +144,7 @@ func NewClient(cli http.Client) *client {
 
 //------------------------------------------------------------------------------
 
-func Request(method, url, body string, options *Options) *Response {
+func Request(method, url string, body io.Reader, options *Options) *Response {
 	return DefaultClient.Request(method, url, body, options)
 }
 

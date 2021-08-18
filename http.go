@@ -12,7 +12,7 @@ import (
 var (
 	// DefaultClient is the default Client
 	// and is used by Get, Post, PostForm, and PostJSON.
-	DefaultClient = &Client{client: http.DefaultClient}
+	DefaultClient = &client{client: http.DefaultClient}
 
 	// 监听器方法，可用于日志处理、上报监控平台等操作
 	_listeners = make([]ListenerFunc, 0)
@@ -63,11 +63,11 @@ type Options struct {
 	Header Header
 }
 
-type Client struct {
+type client struct {
 	client *http.Client
 }
 
-func (c *Client) Request(method, url, body string, options *Options) (resp *Response) {
+func (c *client) Request(method, url, body string, options *Options) (resp *Response) {
 	resp = &Response{}
 	defer func() {
 		// dispatch listeners
@@ -104,21 +104,21 @@ func (c *Client) Request(method, url, body string, options *Options) (resp *Resp
 	return
 }
 
-func (c *Client) Get(url string) *Response {
+func (c *client) Get(url string) *Response {
 	return c.Request("GET", url, "", nil)
 }
 
-func (c *Client) Post(url, data string) *Response {
+func (c *client) Post(url, data string) *Response {
 	return c.Request("POST", url, data, nil)
 }
 
-func (c *Client) PostForm(url string, data string) *Response {
+func (c *client) PostForm(url string, data string) *Response {
 	return c.Request("POST", url, data, &Options{
 		Header: Header{"Content-Type": "application/x-www-form-urlencoded"},
 	})
 }
 
-func (c *Client) PostJSON(url string, data string) *Response {
+func (c *client) PostJSON(url string, data string) *Response {
 	return c.Request("POST", url, data, &Options{
 		Header: Header{"Content-Type": "application/json;charset=utf-8"},
 	})
@@ -144,4 +144,8 @@ func PostForm(url, data string) *Response {
 
 func PostJSON(url, data string) *Response {
 	return DefaultClient.PostJSON(url, data)
+}
+
+func NewClient(cli *http.Client) *client {
+	return &client{client: cli}
 }

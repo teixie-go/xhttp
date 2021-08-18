@@ -21,8 +21,8 @@ var (
 //------------------------------------------------------------------------------
 
 type Response struct {
-	val         []byte
 	Err         error
+	Val         []byte
 	Method      string
 	Url         string
 	RequestBody string
@@ -32,14 +32,21 @@ type Response struct {
 }
 
 func (r *Response) Bind(obj interface{}) error {
-	if r.Err != nil {
-		return r.Err
+	val, err := r.Result()
+	if err != nil {
+		return err
 	}
-	return json.Unmarshal(r.val, obj)
+	return json.Unmarshal(val, obj)
 }
 
 func (r *Response) Result() ([]byte, error) {
-	return r.val, r.Err
+	if r.Err != nil {
+		return nil, r.Err
+	}
+	if r.Response.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("http StatusCode(%d)", r.Response.StatusCode)
+	}
+	return r.Val, nil
 }
 
 //------------------------------------------------------------------------------
@@ -91,16 +98,12 @@ func (c *Client) Request(method, url, body string, options *Options) (resp *Resp
 	}
 	defer retres.Body.Close()
 	resp.Response = retres
-	if retres.StatusCode != http.StatusOK {
-		resp.Err = fmt.Errorf("http StatusCode(%d)", retres.StatusCode)
-		return
-	}
 	val, err := ioutil.ReadAll(retres.Body)
 	if err != nil {
 		resp.Err = err
 		return
 	}
-	resp.val = val
+	resp.Val = val
 	return
 }
 

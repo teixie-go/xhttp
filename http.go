@@ -14,7 +14,7 @@ var (
 	// and is used by Get, Post, PostForm, and PostJSON.
 	DefaultClient = &Client{client: http.DefaultClient}
 
-	// Global listeners
+	// 监听器方法，可用于日志处理、上报监控平台等操作
 	_listeners = make([]ListenerFunc, 0)
 )
 

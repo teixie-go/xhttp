@@ -10,6 +10,8 @@ import (
 )
 
 var (
+	_ Client = (*client)(nil)
+
 	// The default Client and is used by Get, Post, PostForm, and PostJSON.
 	DefaultClient = &client{client: http.DefaultClient}
 
@@ -60,6 +62,18 @@ type Header map[string]string
 
 type Options struct {
 	Header Header
+}
+
+type Client interface {
+	Request(method, url, body string, options *Options) *Response
+
+	Get(url string) *Response
+
+	Post(url, data string) *Response
+
+	PostForm(url, data string) *Response
+
+	PostJSON(url, data string) *Response
 }
 
 type client struct {

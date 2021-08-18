@@ -137,6 +137,10 @@ func (c *client) PostJSON(url string, data string) *Response {
 	})
 }
 
+func NewClient(cli *http.Client) *client {
+	return &client{client: cli}
+}
+
 //------------------------------------------------------------------------------
 
 func Request(method, url, body string, options *Options) *Response {
@@ -157,8 +161,4 @@ func PostForm(url, data string) *Response {
 
 func PostJSON(url, data string) *Response {
 	return DefaultClient.PostJSON(url, data)
-}
-
-func NewClient(cli *http.Client) *client {
-	return &client{client: cli}
 }

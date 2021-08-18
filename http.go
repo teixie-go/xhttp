@@ -137,8 +137,8 @@ func (c *client) PostJSON(url string, data string) *Response {
 	})
 }
 
-func NewClient(cli *http.Client) *client {
-	return &client{client: cli}
+func NewClient(cli http.Client) *client {
+	return &client{client: &cli}
 }
 
 //------------------------------------------------------------------------------

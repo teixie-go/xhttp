@@ -51,7 +51,6 @@ func (r *Response) Result() ([]byte, error) {
 
 type ListenerFunc func(method, url string, body io.Reader, resp *Response)
 
-// Add global listeners
 func Listen(listeners ...ListenerFunc) {
 	_listeners = append(_listeners, listeners...)
 }
@@ -83,7 +82,6 @@ type client struct {
 func (c *client) Request(method, url string, body io.Reader, options *Options) (resp *Response) {
 	resp = &Response{}
 	defer func() {
-		// dispatch listeners
 		for _, listener := range _listeners {
 			listener(method, url, body, resp)
 		}

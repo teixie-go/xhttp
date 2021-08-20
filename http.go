@@ -135,7 +135,7 @@ func (c *client) PostJSON(url string, data io.Reader) *Response {
 	})
 }
 
-func NewClient(cli http.Client) *client {
+func NewClient(cli http.Client) Client {
 	return &client{client: &cli}
 }
 

@@ -14,6 +14,6 @@ fmt.Printf("%v,%v\n", string(result), err)
 
 # 返回内容绑定对象
 ```
-obj :=&struct{}
+obj := &struct{}
 err := cli.Get("url").Bind(obj)
 ```

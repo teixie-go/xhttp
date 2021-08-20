@@ -43,7 +43,7 @@ func (r *Response) Result() ([]byte, error) {
 		return nil, r.Err
 	}
 	if r.Response.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("http StatusCode(%d)", r.Response.StatusCode)
+		return nil, fmt.Errorf("StatusCode=%v", r.Response.StatusCode)
 	}
 	return r.Val, nil
 }

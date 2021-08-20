@@ -12,7 +12,7 @@ import (
 var (
 	_ Client = (*client)(nil)
 
-	// The default Client and is used by Get, Post, PostForm, and PostJSON.
+	// The default Client and is used by Head, Get, Post, PostForm, and PostJSON.
 	DefaultClient = &client{client: http.DefaultClient}
 
 	// 监听器方法，可用于日志处理、上报监控平台等操作
@@ -66,6 +66,8 @@ type Options struct {
 type Client interface {
 	Request(method, url string, body io.Reader, options *Options) *Response
 
+	Head(url string) *Response
+
 	Get(url string) *Response
 
 	Post(url string, data io.Reader) *Response
@@ -115,6 +117,10 @@ func (c *client) Request(method, url string, body io.Reader, options *Options) (
 	return
 }
 
+func (c *client) Head(url string) *Response {
+	return c.Request("HEAD", url, nil, nil)
+}
+
 func (c *client) Get(url string) *Response {
 	return c.Request("GET", url, nil, nil)
 }
@@ -143,6 +149,10 @@ func NewClient(cli http.Client) Client {
 
 func Request(method, url string, body io.Reader, options *Options) *Response {
 	return DefaultClient.Request(method, url, body, options)
+}
+
+func Head(url string) *Response {
+	return DefaultClient.Head(url)
 }
 
 func Get(url string) *Response {

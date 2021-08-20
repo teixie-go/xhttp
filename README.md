@@ -2,7 +2,7 @@
 ```
 var cli xhttp.Client
 cli = xhttp.NewClient(http.Client{
-		Timeout: 500 * time.Millisecond,
+    Timeout: 500 * time.Millisecond,
 })
 ```
 

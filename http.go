@@ -1,19 +1,26 @@
 package xhttp
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"time"
+
+	"github.com/teixie-go/xhttp/binding"
+)
+
+const (
+	MIMEJSON     = "application/json"
+	MIMEXML      = "application/xml"
+	MIMEXML2     = "text/xml"
+	MIMEPOSTForm = "application/x-www-form-urlencoded"
 )
 
 var (
 	_ Client = (*client)(nil)
 
-	// The default Client and is used by Head, Get, Post,
-	// PostForm, and PostJSON.
+	// The default Client and is used by Head, Get, Post, PostForm, and PostJSON.
 	DefaultClient = &client{client: http.DefaultClient}
 
 	// 监听器方法，可用于日志处理、上报监控平台等操作
@@ -30,12 +37,11 @@ type Response struct {
 	Duration time.Duration
 }
 
-func (r *Response) Bind(obj interface{}) error {
-	val, err := r.Result()
-	if err != nil {
-		return err
+func (r *Response) responseHeader(key string) string {
+	if r.Response == nil {
+		return ""
 	}
-	return json.Unmarshal(val, obj)
+	return r.Response.Header.Get(key)
 }
 
 func (r *Response) Result() ([]byte, error) {
@@ -46,6 +52,40 @@ func (r *Response) Result() ([]byte, error) {
 		return nil, fmt.Errorf("StatusCode=%v", r.Response.StatusCode)
 	}
 	return r.Val, nil
+}
+
+func (r *Response) BindWith(obj interface{}, b binding.Binding) error {
+	val, err := r.Result()
+	if err != nil {
+		return err
+	}
+	return b.Bind(val, obj)
+}
+
+func (r *Response) BindJSON(obj interface{}) error {
+	return r.BindWith(obj, binding.JSON)
+}
+
+func (r *Response) BindXML(obj interface{}) error {
+	return r.BindWith(obj, binding.XML)
+}
+
+func (r *Response) Bind(obj interface{}) error {
+	contentType := stripFlags(r.responseHeader("Content-Type"))
+	switch contentType {
+	case MIMEXML, MIMEXML2:
+		return r.BindXML(obj)
+	}
+	return r.BindJSON(obj)
+}
+
+func stripFlags(str string) string {
+	for i, char := range str {
+		if char == ' ' || char == ';' {
+			return str[:i]
+		}
+	}
+	return str
 }
 
 //------------------------------------------------------------------------------
@@ -127,13 +167,13 @@ func (c *client) Post(url string, data io.Reader) *Response {
 
 func (c *client) PostForm(url string, data io.Reader) *Response {
 	return c.Request("POST", url, data, &Options{
-		Header: Header{"Content-Type": "application/x-www-form-urlencoded"},
+		Header: Header{"Content-Type": MIMEPOSTForm},
 	})
 }
 
 func (c *client) PostJSON(url string, data io.Reader) *Response {
 	return c.Request("POST", url, data, &Options{
-		Header: Header{"Content-Type": "application/json;charset=utf-8"},
+		Header: Header{"Content-Type": MIMEJSON + ";charset=utf-8"},
 	})
 }
 

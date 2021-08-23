@@ -5,13 +5,13 @@
 result, err := xhttp.Get("url").Result()
 
 // Post
-result, err := xhttp.Post("url", "body").Result()
+result, err := xhttp.Post("url", strings.NewReader("body")).Result()
 
 // PostForm
-result, err := xhttp.PostForm("url", "body").Result()
+result, err := xhttp.PostForm("url", strings.NewReader("body")).Result()
 
 // PostJSON
-result, err := xhttp.PostJSON("url", "body").Result()
+result, err := xhttp.PostJSON("url", strings.NewReader("body")).Result()
 ```
 ### 2.使用自定义配置
 ```

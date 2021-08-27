@@ -30,26 +30,26 @@ var (
 //------------------------------------------------------------------------------
 
 type Response struct {
-	Err      error
-	Val      []byte
-	Request  *http.Request
-	Response *http.Response
-	Duration time.Duration
+	Err         error
+	Val         []byte
+	Request     *http.Request
+	RawResponse *http.Response
+	Duration    time.Duration
 }
 
 func (r *Response) responseHeader(key string) string {
-	if r.Response == nil {
+	if r.RawResponse == nil {
 		return ""
 	}
-	return r.Response.Header.Get(key)
+	return r.RawResponse.Header.Get(key)
 }
 
 func (r *Response) Result() ([]byte, error) {
 	if r.Err != nil {
 		return nil, r.Err
 	}
-	if r.Response.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("StatusCode=%v", r.Response.StatusCode)
+	if r.RawResponse.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("StatusCode=%v", r.RawResponse.StatusCode)
 	}
 	return r.Val, nil
 }
@@ -143,7 +143,7 @@ func (c *client) Request(method, url string, body io.Reader, options *Options) (
 		return
 	}
 	defer retres.Body.Close()
-	resp.Response = retres
+	resp.RawResponse = retres
 	val, err := ioutil.ReadAll(retres.Body)
 	if err != nil {
 		resp.Err = err

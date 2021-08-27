@@ -53,7 +53,7 @@ func (c *client) Request(method, url string, body io.Reader, options *xhttp.Opti
 	resp.Val = w.Body.Bytes()
 	resp.Request = req
 	resp.ResponseRecorder = w
-	resp.Response.Response = w.Result()
+	resp.RawResponse = w.Result()
 	return
 }
 

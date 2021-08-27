@@ -108,9 +108,9 @@ type Client interface {
 	Request(method, url string, body io.Reader, options *Options) *Response
 	Head(url string) *Response
 	Get(url string) *Response
-	Post(url string, data io.Reader) *Response
-	PostForm(url string, data io.Reader) *Response
-	PostJSON(url string, data io.Reader) *Response
+	Post(url string, body io.Reader) *Response
+	PostForm(url string, body io.Reader) *Response
+	PostJSON(url string, body io.Reader) *Response
 }
 
 type client struct {
@@ -161,18 +161,18 @@ func (c *client) Get(url string) *Response {
 	return c.Request("GET", url, nil, nil)
 }
 
-func (c *client) Post(url string, data io.Reader) *Response {
-	return c.Request("POST", url, data, nil)
+func (c *client) Post(url string, body io.Reader) *Response {
+	return c.Request("POST", url, body, nil)
 }
 
-func (c *client) PostForm(url string, data io.Reader) *Response {
-	return c.Request("POST", url, data, &Options{
+func (c *client) PostForm(url string, body io.Reader) *Response {
+	return c.Request("POST", url, body, &Options{
 		Header: Header{"Content-Type": MIMEPOSTForm},
 	})
 }
 
-func (c *client) PostJSON(url string, data io.Reader) *Response {
-	return c.Request("POST", url, data, &Options{
+func (c *client) PostJSON(url string, body io.Reader) *Response {
+	return c.Request("POST", url, body, &Options{
 		Header: Header{"Content-Type": MIMEJSON + ";charset=utf-8"},
 	})
 }
@@ -195,14 +195,14 @@ func Get(url string) *Response {
 	return DefaultClient.Get(url)
 }
 
-func Post(url string, data io.Reader) *Response {
-	return DefaultClient.Post(url, data)
+func Post(url string, body io.Reader) *Response {
+	return DefaultClient.Post(url, body)
 }
 
-func PostForm(url string, data io.Reader) *Response {
-	return DefaultClient.PostForm(url, data)
+func PostForm(url string, body io.Reader) *Response {
+	return DefaultClient.PostForm(url, body)
 }
 
-func PostJSON(url string, data io.Reader) *Response {
-	return DefaultClient.PostJSON(url, data)
+func PostJSON(url string, body io.Reader) *Response {
+	return DefaultClient.PostJSON(url, body)
 }

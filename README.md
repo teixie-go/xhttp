@@ -60,3 +60,27 @@ func httpLog(method, url string, body io.Reader, resp *xhttp.Response) {
 }
 xhttp.Listen(httpLog)
 ```
+
+## 测试用例请求
+```
+func Serve() httptest.Client {
+	e := gin.Default()
+	routes.Setup(e) // 设置路由
+	return httptest.NewClient(e)
+}
+
+func TestCreateXXXOk(t *testing.T) {
+	resp := Serve().Post("/xxx/create", strings.NewReader(`{
+		"name": "test",
+	  }`))
+	assert.Equal(t, http.StatusOK, resp.RawResponse.StatusCode)
+	
+	result := &struct {
+    	Code int    `json:"code"`
+    	Msg  string `json:"msg"`
+   	}{}
+   	_ = resp.Bind(result)
+   	assert.Equal(t, result.Code, 200)
+   	assert.Equal(t, result.Msg, "success")
+}
+```

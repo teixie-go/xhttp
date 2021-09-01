@@ -81,12 +81,12 @@ func Serve() httptest.Client {
 func TestCreateXXXOk(t *testing.T) {
 	resp := Serve().Post("/xxx/create", strings.NewReader(`{
 		"name": "test",
-	  }`))
+	}`))
 	assert.Equal(t, http.StatusOK, resp.RawResponse.StatusCode)
 	
 	result := &struct {
-    	Code int    `json:"code"`
-    	Msg  string `json:"msg"`
+	    Code int    `json:"code"`
+	    Msg  string `json:"msg"`
    	}{}
    	_ = resp.Bind(result)
    	assert.Equal(t, result.Code, 200)

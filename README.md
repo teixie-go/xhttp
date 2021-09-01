@@ -69,9 +69,13 @@ import (
 )
 
 func Serve() httptest.Client {
+	// gin
 	e := gin.Default()
 	routes.Setup(e) // 设置路由
 	return httptest.NewClient(e)
+	
+	// beego
+	// return httptest.NewClient(beego.BeeApp.Handlers)
 }
 
 func TestCreateXXXOk(t *testing.T) {

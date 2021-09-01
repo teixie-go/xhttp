@@ -63,6 +63,11 @@ xhttp.Listen(httpLog)
 
 ## 测试用例请求
 ```
+import (
+	"github.com/gin-gonic/gin"
+	"github.com/teixie-go/xhttp/httptest"
+)
+
 func Serve() httptest.Client {
 	e := gin.Default()
 	routes.Setup(e) // 设置路由

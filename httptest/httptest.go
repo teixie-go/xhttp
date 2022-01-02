@@ -23,28 +23,23 @@ type Response struct {
 }
 
 type Client interface {
-	Request(method, url string, body io.Reader, options *xhttp.Options) *Response
 	Get(url string) *Response
 	Post(url string, body io.Reader) *Response
 	PostForm(url string, body io.Reader) *Response
 	PostJSON(url string, body io.Reader) *Response
+	Request(resolver func() (*http.Request, error)) *Response
 }
 
 type client struct {
 	serve Serve
 }
 
-func (c *client) Request(method, url string, body io.Reader, options *xhttp.Options) (resp *Response) {
+func (c *client) Request(resolver func() (*http.Request, error)) (resp *Response) {
 	resp = &Response{}
-	req, err := http.NewRequest(method, url, body)
+	req, err := resolver()
 	if err != nil {
 		resp.Err = err
 		return
-	}
-	if options != nil {
-		for k, v := range options.Header {
-			req.Header.Set(k, v)
-		}
 	}
 	w := httptest.NewRecorder()
 	startTime := time.Now()
@@ -57,23 +52,34 @@ func (c *client) Request(method, url string, body io.Reader, options *xhttp.Opti
 	return
 }
 
+func (c *client) request(method, url string, body io.Reader, header http.Header) *Response {
+	return c.Request(func() (*http.Request, error) {
+		req, err := http.NewRequest(method, url, body)
+		if err != nil {
+			return nil, err
+		}
+		req.Header = header
+		return req, nil
+	})
+}
+
 func (c *client) Get(url string) *Response {
-	return c.Request("GET", url, nil, nil)
+	return c.request("GET", url, nil, nil)
 }
 
 func (c *client) Post(url string, body io.Reader) *Response {
-	return c.Request("POST", url, body, nil)
+	return c.request("POST", url, body, nil)
 }
 
 func (c *client) PostForm(url string, body io.Reader) *Response {
-	return c.Request("POST", url, body, &xhttp.Options{
-		Header: xhttp.Header{"Content-Type": xhttp.MIMEPOSTForm},
+	return c.request("POST", url, body, http.Header{
+		"Content-Type": []string{xhttp.MIMEPOSTForm},
 	})
 }
 
 func (c *client) PostJSON(url string, body io.Reader) *Response {
-	return c.Request("POST", url, body, &xhttp.Options{
-		Header: xhttp.Header{"Content-Type": xhttp.MIMEJSON + ";charset=utf-8"},
+	return c.request("POST", url, body, http.Header{
+		"Content-Type": []string{xhttp.MIMEJSON + ";charset=utf-8"},
 	})
 }
 

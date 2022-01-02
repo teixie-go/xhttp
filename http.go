@@ -98,41 +98,30 @@ func Listen(listeners ...ListenerFunc) {
 
 //------------------------------------------------------------------------------
 
-type Header map[string]string
-
-type Options struct {
-	Header Header
-}
-
 type Client interface {
-	Request(method, url string, body io.Reader, options *Options) *Response
 	Head(url string) *Response
 	Get(url string) *Response
 	Post(url string, body io.Reader) *Response
 	PostForm(url string, body io.Reader) *Response
 	PostJSON(url string, body io.Reader) *Response
+	Request(method, url string, body io.Reader, resolver func() (*http.Request, error)) *Response
 }
 
 type client struct {
 	client *http.Client
 }
 
-func (c *client) Request(method, url string, body io.Reader, options *Options) (resp *Response) {
+func (c *client) Request(method, url string, body io.Reader, resolver func() (*http.Request, error)) (resp *Response) {
 	resp = &Response{}
 	defer func() {
 		for _, listener := range _listeners {
 			listener(method, url, body, resp)
 		}
 	}()
-	req, err := http.NewRequest(method, url, body)
+	req, err := resolver()
 	if err != nil {
 		resp.Err = err
 		return
-	}
-	if options != nil {
-		for k, v := range options.Header {
-			req.Header.Set(k, v)
-		}
 	}
 	resp.Request = req
 	beginTime := time.Now()
@@ -154,26 +143,37 @@ func (c *client) Request(method, url string, body io.Reader, options *Options) (
 }
 
 func (c *client) Head(url string) *Response {
-	return c.Request("HEAD", url, nil, nil)
+	return c.request("HEAD", url, nil, nil)
 }
 
 func (c *client) Get(url string) *Response {
-	return c.Request("GET", url, nil, nil)
+	return c.request("GET", url, nil, nil)
 }
 
 func (c *client) Post(url string, body io.Reader) *Response {
-	return c.Request("POST", url, body, nil)
+	return c.request("POST", url, body, nil)
 }
 
 func (c *client) PostForm(url string, body io.Reader) *Response {
-	return c.Request("POST", url, body, &Options{
-		Header: Header{"Content-Type": MIMEPOSTForm},
+	return c.request("POST", url, body, http.Header{
+		"Content-Type": []string{MIMEPOSTForm},
 	})
 }
 
 func (c *client) PostJSON(url string, body io.Reader) *Response {
-	return c.Request("POST", url, body, &Options{
-		Header: Header{"Content-Type": MIMEJSON + ";charset=utf-8"},
+	return c.request("POST", url, body, http.Header{
+		"Content-Type": []string{MIMEJSON + ";charset=utf-8"},
+	})
+}
+
+func (c *client) request(method, url string, body io.Reader, header http.Header) *Response {
+	return c.Request(method, url, body, func() (*http.Request, error) {
+		req, err := http.NewRequest(method, url, body)
+		if err != nil {
+			return nil, err
+		}
+		req.Header = header
+		return req, nil
 	})
 }
 
@@ -183,8 +183,8 @@ func NewClient(cli http.Client) Client {
 
 //------------------------------------------------------------------------------
 
-func Request(method, url string, body io.Reader, options *Options) *Response {
-	return DefaultClient.Request(method, url, body, options)
+func Request(method, url string, body io.Reader, resolver func() (*http.Request, error)) *Response {
+	return DefaultClient.Request(method, url, body, resolver)
 }
 
 func Head(url string) *Response {

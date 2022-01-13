@@ -22,9 +22,6 @@ var (
 
 	// The default Client and is used by Head, Get, Post, PostForm, and PostJSON.
 	DefaultClient = &client{client: http.DefaultClient}
-
-	// 监听器方法，可用于日志处理、上报监控平台等操作
-	_listeners = make([]ListenerFunc, 0)
 )
 
 //------------------------------------------------------------------------------
@@ -90,13 +87,9 @@ func stripFlags(str string) string {
 
 //------------------------------------------------------------------------------
 
-type ListenerFunc func(method, url string, body io.Reader, resp *Response)
+type Handler func(method, url string, body io.Reader, request *http.Request) *Response
 
-func Listen(listeners ...ListenerFunc) {
-	_listeners = append(_listeners, listeners...)
-}
-
-//------------------------------------------------------------------------------
+type Middleware func(Handler) Handler
 
 type Client interface {
 	Head(url string) *Response
@@ -108,38 +101,42 @@ type Client interface {
 }
 
 type client struct {
-	client *http.Client
+	client     *http.Client
+	middleware Middleware
 }
 
-func (c *client) Request(method, url string, body io.Reader, resolver func() (*http.Request, error)) (resp *Response) {
-	resp = &Response{}
-	defer func() {
-		for _, listener := range _listeners {
-			listener(method, url, body, resp)
-		}
-	}()
+type Option func(*client)
+
+func (c *client) Request(method, url string, body io.Reader, resolver func() (*http.Request, error)) *Response {
 	req, err := resolver()
-	if err != nil {
-		resp.Err = err
-		return
+	resp := &Response{Err: err}
+	h := func(method, url string, body io.Reader, request *http.Request) *Response {
+		if resp.Err != nil {
+			resp.Err = err
+			return resp
+		}
+		resp.Request = request
+		beginTime := time.Now()
+		retres, err := c.client.Do(request)
+		resp.Duration = time.Now().Sub(beginTime)
+		if err != nil {
+			resp.Err = err
+			return resp
+		}
+		defer retres.Body.Close()
+		resp.RawResponse = retres
+		val, err := ioutil.ReadAll(retres.Body)
+		if err != nil {
+			resp.Err = err
+			return resp
+		}
+		resp.Val = val
+		return resp
 	}
-	resp.Request = req
-	beginTime := time.Now()
-	retres, err := c.client.Do(req)
-	resp.Duration = time.Now().Sub(beginTime)
-	if err != nil {
-		resp.Err = err
-		return
+	if c.middleware != nil {
+		h = c.middleware(h)
 	}
-	defer retres.Body.Close()
-	resp.RawResponse = retres
-	val, err := ioutil.ReadAll(retres.Body)
-	if err != nil {
-		resp.Err = err
-		return
-	}
-	resp.Val = val
-	return
+	return h(method, url, body, req)
 }
 
 func (c *client) request(method, url string, body io.Reader, header http.Header) *Response {
@@ -177,8 +174,18 @@ func (c *client) PostJSON(url string, body io.Reader) *Response {
 	})
 }
 
-func NewClient(cli http.Client) Client {
-	return &client{client: &cli}
+func NewClient(cli http.Client, opts ...Option) Client {
+	client := &client{client: &cli}
+	for _, o := range opts {
+		o(client)
+	}
+	return client
+}
+
+func WithMiddleware(middleware Middleware) Option {
+	return func(c *client) {
+		c.middleware = middleware
+	}
 }
 
 //------------------------------------------------------------------------------

@@ -64,7 +64,7 @@ func HttpLogger() xhttp.Middleware {
 }
 
 // 使用全局中间件
-xhttp.Use(HttpLogger)
+xhttp.Use(HttpLogger())
 
 // 使用局部中间件
 cli := xhttp.NewClient(

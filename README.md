@@ -49,16 +49,30 @@ func (xxxBinding) Bind([]byte, obj interface{}) error{
 err = cli.Get("url").BindWith(obj, xxxBinding{})
 ```
 
-## 监听请求完成事件
+## 使用中间件
 ```
-// 可用于日志打印、第三方监控平台上报等操作
-func httpLog(method, url string, body io.Reader, resp *xhttp.Response) {
-    // 打印日志
-    xlog.Infof("http_request: method=%v url=%v duration=%v\n", method, url, resp.Duration)
-    
-    // 上报promethus
+// 定义中间件
+func HttpLogger() xhttp.Middleware {
+    return func(handler xhttp.Handler) xhttp.Handler {
+        return func(method, url string, body io.Reader, request *http.Request) *xhttp.Response {
+            // do something before
+            resp := handler(method, url, body, request)
+            // do something after
+            return resp
+        }
+    }
 }
-xhttp.Listen(httpLog)
+
+// 使用全局中间件
+xhttp.Use(HttpLogger)
+
+// 使用局部中间件
+cli := xhttp.NewClient(
+    http.Client{
+        Timeout: 1 * time.Second,
+    },
+    xhttp.WithMiddleware(HttpLogger()),
+)
 ```
 
 ## 测试用例请求

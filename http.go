@@ -22,6 +22,9 @@ var (
 
 	// The default Client and is used by Head, Get, Post, PostForm, and PostJSON.
 	DefaultClient = &client{client: http.DefaultClient}
+
+	// The global middleware.
+	_middleware Middleware
 )
 
 //------------------------------------------------------------------------------
@@ -112,7 +115,6 @@ func (c *client) Request(method, url string, body io.Reader, resolver func() (*h
 	resp := &Response{Err: err}
 	h := func(method, url string, body io.Reader, request *http.Request) *Response {
 		if resp.Err != nil {
-			resp.Err = err
 			return resp
 		}
 		resp.Request = request
@@ -135,6 +137,9 @@ func (c *client) Request(method, url string, body io.Reader, resolver func() (*h
 	}
 	if c.middleware != nil {
 		h = c.middleware(h)
+	}
+	if _middleware != nil {
+		h = _middleware(h)
 	}
 	return h(method, url, body, req)
 }
@@ -182,9 +187,24 @@ func NewClient(cli http.Client, opts ...Option) Client {
 	return client
 }
 
-func WithMiddleware(middleware Middleware) Option {
+func withMiddlewareChain(chain Middleware, middleware ...Middleware) Middleware {
+	if len(middleware) == 0 {
+		return chain
+	}
+	if chain == nil {
+		return withMiddlewareChain(middleware[0], middleware[1:]...)
+	}
+	return func(next Handler) Handler {
+		for i := len(middleware) - 1; i >= 0; i-- {
+			next = middleware[i](next)
+		}
+		return chain(next)
+	}
+}
+
+func WithMiddleware(middleware ...Middleware) Option {
 	return func(c *client) {
-		c.middleware = middleware
+		c.middleware = withMiddlewareChain(c.middleware, middleware...)
 	}
 }
 
@@ -212,4 +232,8 @@ func PostForm(url string, body io.Reader) *Response {
 
 func PostJSON(url string, body io.Reader) *Response {
 	return DefaultClient.PostJSON(url, body)
+}
+
+func Use(middleware ...Middleware) {
+	_middleware = withMiddlewareChain(_middleware, middleware...)
 }

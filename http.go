@@ -208,6 +208,10 @@ func WithMiddleware(middleware ...Middleware) Option {
 	}
 }
 
+func Use(middleware ...Middleware) {
+	_middleware = withMiddlewareChain(_middleware, middleware...)
+}
+
 //------------------------------------------------------------------------------
 
 func Request(method, url string, body io.Reader, resolver func() (*http.Request, error)) *Response {
@@ -232,8 +236,4 @@ func PostForm(url string, body io.Reader) *Response {
 
 func PostJSON(url string, body io.Reader) *Response {
 	return DefaultClient.PostJSON(url, body)
-}
-
-func Use(middleware ...Middleware) {
-	_middleware = withMiddlewareChain(_middleware, middleware...)
 }

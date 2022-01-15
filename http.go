@@ -200,12 +200,9 @@ func withMiddlewareChain(chain Middleware, middleware ...Middleware) Middleware 
 	if chain == nil {
 		return withMiddlewareChain(middleware[0], middleware[1:]...)
 	}
-	return func(next Handler) Handler {
-		for i := len(middleware) - 1; i >= 0; i-- {
-			next = middleware[i](next)
-		}
-		return chain(next)
-	}
+	return withMiddlewareChain(func(next Handler) Handler {
+		return chain(middleware[0](next))
+	}, middleware[1:]...)
 }
 
 func Use(middleware ...Middleware) {

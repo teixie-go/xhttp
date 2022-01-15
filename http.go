@@ -108,8 +108,6 @@ type client struct {
 	middleware Middleware
 }
 
-type Option func(*client)
-
 func (c *client) Request(method, url string, body io.Reader, resolver func() (*http.Request, error)) *Response {
 	req, err := resolver()
 	resp := &Response{Err: err}
@@ -179,12 +177,20 @@ func (c *client) PostJSON(url string, body io.Reader) *Response {
 	})
 }
 
+type Option func(*client)
+
 func NewClient(cli http.Client, opts ...Option) Client {
 	client := &client{client: &cli}
 	for _, o := range opts {
 		o(client)
 	}
 	return client
+}
+
+func WithMiddleware(middleware ...Middleware) Option {
+	return func(c *client) {
+		c.middleware = withMiddlewareChain(c.middleware, middleware...)
+	}
 }
 
 func withMiddlewareChain(chain Middleware, middleware ...Middleware) Middleware {
@@ -199,12 +205,6 @@ func withMiddlewareChain(chain Middleware, middleware ...Middleware) Middleware 
 			next = middleware[i](next)
 		}
 		return chain(next)
-	}
-}
-
-func WithMiddleware(middleware ...Middleware) Option {
-	return func(c *client) {
-		c.middleware = withMiddlewareChain(c.middleware, middleware...)
 	}
 }
 

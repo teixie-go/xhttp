@@ -90,23 +90,27 @@ func stripFlags(str string) string {
 
 //------------------------------------------------------------------------------
 
-type Handler func(method, url string, body io.Reader, request *http.Request) *Response
+type (
+	Handler func(method, url string, body io.Reader, request *http.Request) *Response
 
-type Middleware func(Handler) Handler
+	Middleware func(Handler) Handler
 
-type Client interface {
-	Head(url string) *Response
-	Get(url string) *Response
-	Post(url string, body io.Reader) *Response
-	PostForm(url string, body io.Reader) *Response
-	PostJSON(url string, body io.Reader) *Response
-	Request(method, url string, body io.Reader, resolver func() (*http.Request, error)) *Response
-}
+	Client interface {
+		Head(url string) *Response
+		Get(url string) *Response
+		Post(url string, body io.Reader) *Response
+		PostForm(url string, body io.Reader) *Response
+		PostJSON(url string, body io.Reader) *Response
+		Request(method, url string, body io.Reader, resolver func() (*http.Request, error)) *Response
+	}
 
-type client struct {
-	client     *http.Client
-	middleware Middleware
-}
+	client struct {
+		client     *http.Client
+		middleware Middleware
+	}
+
+	Option func(*client)
+)
 
 func (c *client) Request(method, url string, body io.Reader, resolver func() (*http.Request, error)) *Response {
 	req, err := resolver()
@@ -176,8 +180,6 @@ func (c *client) PostJSON(url string, body io.Reader) *Response {
 		"Content-Type": []string{MIMEJSON + ";charset=utf-8"},
 	})
 }
-
-type Option func(*client)
 
 func NewClient(cli http.Client, opts ...Option) Client {
 	client := &client{client: &cli}

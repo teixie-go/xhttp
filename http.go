@@ -114,10 +114,10 @@ type (
 
 func (c *client) Request(method, url string, body io.Reader, resolver func() (*http.Request, error)) *Response {
 	req, err := resolver()
-	resp := &Response{Err: err}
-	h := func(method, url string, body io.Reader, request *http.Request) *Response {
+	h := func(method, url string, body io.Reader, request *http.Request) (resp *Response) {
+		resp = &Response{Err: err}
 		if resp.Err != nil {
-			return resp
+			return
 		}
 		resp.Request = request
 		beginTime := time.Now()
@@ -125,17 +125,17 @@ func (c *client) Request(method, url string, body io.Reader, resolver func() (*h
 		resp.Duration = time.Now().Sub(beginTime)
 		if err != nil {
 			resp.Err = err
-			return resp
+			return
 		}
 		defer retres.Body.Close()
 		resp.RawResponse = retres
 		val, err := ioutil.ReadAll(retres.Body)
 		if err != nil {
 			resp.Err = err
-			return resp
+			return
 		}
 		resp.Val = val
-		return resp
+		return
 	}
 	if c.middleware != nil {
 		h = c.middleware(h)
